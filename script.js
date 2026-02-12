@@ -2,7 +2,22 @@ const baseUrl = `https://698d77b5b79d1c928ed567d4.mockapi.io/tasks`
 let allTasks = [];
 let dataContainer = $(".table-container");
 let noDataFound = $(".no-data-found");
+let toast = $("#toasts");
 
+let success = `
+        <div data-mdb-alert-init class="alert fade" id="alert-success" role="alert" data-mdb-color="success"
+            data-mdb-position="top-right" data-mdb-stacking="true" data-mdb-width="535px" data-mdb-append-to-body="true"
+            data-mdb-hidden="true" data-mdb-autohide="true" data-mdb-delay="2000">
+            Task Successfull Added!
+        </div>`
+
+let failed = `
+        <div data-mdb-alert-init class="alert fade" id="alert-error" role="alert" data-mdb-color="danger"
+            data-mdb-position="top-right" data-mdb-stacking="true" data-mdb-width="535px" data-mdb-append-to-body="true"
+            data-mdb-hidden="true" data-mdb-autohide="true" data-mdb-delay="2000">
+            Something Went Wrong! Please Try Again Later.
+        </div>
+`
 async function LoadTask() {
     let r = await fetch("https://698d77b5b79d1c928ed567d4.mockapi.io/tasks");
     const data = await r.json();
@@ -22,7 +37,27 @@ function checkEmpty(inputId, errorId, message) {
     }
 }
 
-async function InsertTask() {
+async function InsertTask(data) {
+    try {
+        const res = await fetch(baseUrl, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(data)
+        });
+
+        const result = await res.json();
+        console.log(res);
+        if (res.ok) {
+            toast.append(success);
+        } else {
+            toast.append(failed);
+        }
+
+    } catch (error) {
+        console.error("Error:", error);
+    }
 }
 function ValidateDate() {
     let dueDate = $("#dueDate").val();
@@ -58,7 +93,7 @@ function DisplayTable() {
         $.each(allTasks, function (index, record) {
             let row = `
             <tr key=${record.id}>
-                <td>${record.title}</td>
+                <td>${record.taskName}</td>
                 <td>${record.dueDate}</td>
                 <td>${record.priority}</td>
                 <td>${record.category}</td>
@@ -118,10 +153,11 @@ function DisplayTable() {
         return false;
     }
 }
+
 $(document).ready(async function () {
     await LoadTask();
     DisplayTable();
-    await InsertTask();
+    let dataObject = {};
     $("#taskName").on("input", function () {
         checkEmpty("#taskName", "#taskNameError", "Task Name Required");
     })
@@ -139,7 +175,7 @@ $(document).ready(async function () {
 
 
 
-    $("form").submit(function (e) {
+    $("form").submit(async function (e) {
         e.preventDefault();
         let invalid = false;
 
@@ -158,7 +194,7 @@ $(document).ready(async function () {
             return;
         }
 
-        let dataObject = {
+        dataObject = {
             taskName: $("#taskName").val(),
             dueDate: $("#dueDate").val(),
             category: $("#category").val(),
@@ -166,6 +202,10 @@ $(document).ready(async function () {
             notes: $("#notes").val(),
         }
         console.log(dataObject);
+        await InsertTask(dataObject);
+        await LoadTask();
+        await DisplayTable();
+
     })
 })
 
